@@ -128,7 +128,7 @@ void gpio__steer_pinmux(uint8_t pin, gpio__pinmux_fun_t pinmux_fun) {
 	iowrite32(tmp, virt_gpio_base + reg);
 }
 
-
+// TODO da li mozemo da koristimo ovo?
 #define GPSET0_OFFSET 0x1C
 #define GPSET1_OFFSET 0x20
 #define GPCLR0_OFFSET 0x28

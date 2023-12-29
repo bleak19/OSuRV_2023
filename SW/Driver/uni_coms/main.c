@@ -3,6 +3,13 @@
 #include <linux/fs.h> // file_operations
 #include <linux/errno.h> // EFAULT
 #include <linux/uaccess.h> // copy_from_user(), copy_to_user()
+#include <asm/io.h>
+#include <linux/delay.h>
+#include <linux/ktime.h>
+#include <linux/hrtime.h>
+
+#define UART_COMS__N 2
+#define BAUD_RATE 9600
 
 MODULE_LICENSE("Dual BSD/GPL");
 
@@ -12,6 +19,35 @@ MODULE_LICENSE("Dual BSD/GPL");
 
 #define FAKE_FEEDBACK 1
 
+static const uint8_t uart_gpio_no[UART_COMS__N] = {
+    14, //tx
+    15  //rx
+};
+
+int send_8bit_serial_data(char data_tx, char mask){
+
+
+	if(data_tx & mask){
+	
+		gpio__set(uart_gpio_no[0]);
+	
+	}
+	else {
+		gpio__clear(uart_gpio_no[0]);
+
+	}
+	
+ 
+
+data_tx = data_tx<< 1;
+//delay(1/BAUD_RATE);
+}
+ //send stop bit
+
+
+
+uint8_t tx_data;
+uint8_t rx_data;
 
 static int uart_coms_open(struct inode *inode, struct file *filp) {
 	return 0;
@@ -27,8 +63,21 @@ static ssize_t uart_coms_write(
 	size_t len,
 	loff_t *f_pos
 ) {
-	uint8_t start_bit;
-	uint8_t stop_bit;
+	gpio__clear(uart_gpio_no[0]);
+	//delay(1/BAUD_RATE);
+	delay(100);
+	char podatak = 'h';
+	char mask
+	int i;
+	for(i = 0; i < 8; i++){
+		send_8bit_serial_data(podatak);
+		delay(100);
+
+		mask >>= 1;
+	}
+
+	gpio__set(uart_gpio_no[0]);
+	return sizeof(podatak);
 }
 
 
@@ -38,8 +87,26 @@ static ssize_t uart_coms_read(
 	size_t len,
 	loff_t* f_pos
 ) {
-	
+	mask = 0x80;
+	char karakter=0x00;
+	while(gpio__read(uart_gpio_no[1]));
+	delay(50);
+	for(i = 0; i < 8; i++){
+		delay(100);
+		karakter = gpio__read(uart_gpio_no[1]);
+		karakter <<=1;
+	}
+	gpio__set(uart_gpio_no[1]);
+	if(copy_to_user(buf,(uint8_t*)&karakter, len )){
+		return -EFAULT;
+	}else{
+
+		return len;
+	}
 }
+
+uart_coms__ioctl_data data;
+
 
 
 static long uart_coms_ioctl(
@@ -47,19 +114,28 @@ static long uart_coms_ioctl(
 	unsigned int cmd,
 	unsigned long arg
 ) {
-	uart_coms__ioctl_arg_moduo_t a;
+	/*uart_coms__ioctl_data a;
+	pthread_t write_t;
+	pthread_t read_t;
+	
+	//pthread_mutex_init(&cs_mutex, NULL);
 	
 	switch(cmd){
-		case IOCTL_MOTOR_CLTR_SET_MODUO:
-			a = *(uart_coms__ioctl_arg_moduo_t*)&arg;
-			pwm__set_moduo(a.ch, a.moduo);
+		case IOCTL_WRITE:
+			pthread_create(&write_t, NULL,  send_8bit_serial_data, data);
+			
+			break;
+		case IOCTL_READ:
+			
 			break;
 		default:
 			break;
 	}
-
+	*/
 	return 0;
 }
+
+
 
 loff_t uart_coms_llseek(
 	struct file* filp,
@@ -100,7 +176,7 @@ void uart_coms_exit(void) {
 
 int uart_coms_init(void) {
 	int r;
-	uint8_t ch;
+	//uint8_t ch;
 
 	printk(KERN_INFO DEV_NAME": Inserting module...\n");
 	
@@ -114,6 +190,10 @@ int uart_coms_init(void) {
 	if(r){
 		goto exit;
 	}
+
+	gpio__steer_pinmux(uart_gpio_no[0], GPIO__OUT);
+	gpio__steer_pinmux(uart_gpio_no[1], GPIO__IN);
+
 	
 exit:
 	if(r){

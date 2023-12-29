@@ -19,9 +19,9 @@
 #include <linux/ioctl.h> // For _IOW and _IORW
 
 typedef struct {
-	uint8_t ch;
-	uint16_t moduo;
-} uart_coms__ioctl_arg_moduo_t;
+	uint8_t pin;
+	unsigned char data;
+} uart_coms__ioctl_data;
 
 //#define MOTOR_CLTR__N_SERVO 6
 //#define MOTOR_CLTR__N_BLDC 1
@@ -32,8 +32,11 @@ typedef struct {
 } uart_coms__read_arg_fb_t;
 
 
-#define IOCTL_MOTOR_CLTR_SET_MODUO \
-	_IOW('s', 0, uart_coms__ioctl_arg_moduo_t)
+#define IOCTL_WRITE\
+	_IOW('w', 1, uart_coms__ioctl_data)
+	
+#define IOCTL_READ\
+	_IOW('r', 0, uart_coms__ioctl_data)
 
 
 #endif // UART_COMS_H
