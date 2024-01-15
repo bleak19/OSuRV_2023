@@ -1,19 +1,19 @@
 
+#include <linux/unistd.h>
 #include <linux/module.h> // module_init(), module_exit()
 #include <linux/fs.h> // file_operations
 #include <linux/errno.h> // EFAULT
 #include <linux/uaccess.h> // copy_from_user(), copy_to_user()
 #include <asm/io.h>
 #include <linux/delay.h>
-#include <linux/ktime.h>
-#include <linux/hrtime.h>
+
 
 #define UART_COMS__N 2
 #define BAUD_RATE 9600
 
 MODULE_LICENSE("Dual BSD/GPL");
 
-#include "include/uart_coms.h"
+#include "include/uni_coms.h"
 #include "gpio.h"
 
 
@@ -24,7 +24,7 @@ static const uint8_t uart_gpio_no[UART_COMS__N] = {
     15  //rx
 };
 
-int send_8bit_serial_data(char data_tx, char mask){
+void send_8bit_serial_data(char data_tx, char mask){
 
 
 	if(data_tx & mask){
@@ -40,7 +40,6 @@ int send_8bit_serial_data(char data_tx, char mask){
  
 
 data_tx = data_tx<< 1;
-//delay(1/BAUD_RATE);
 }
  //send stop bit
 
@@ -63,15 +62,15 @@ static ssize_t uart_coms_write(
 	size_t len,
 	loff_t *f_pos
 ) {
-	gpio__clear(uart_gpio_no[0]);
-	//delay(1/BAUD_RATE);
-	delay(100);
-	char podatak = 'h';
-	char mask
+	char mask;
 	int i;
+	char podatak = 'h';
+	printk(KERN_INFO DEV_NAME": ERROR1 --------------n");
+	gpio__clear(uart_gpio_no[0]);
+	msleep(100);
 	for(i = 0; i < 8; i++){
-		send_8bit_serial_data(podatak);
-		delay(100);
+		send_8bit_serial_data(podatak,mask);
+		msleep(100);
 
 		mask >>= 1;
 	}
@@ -87,15 +86,20 @@ static ssize_t uart_coms_read(
 	size_t len,
 	loff_t* f_pos
 ) {
-	mask = 0x80;
+	//char mask = 0x80;
 	char karakter=0x00;
+	int i;
+	printk(KERN_INFO DEV_NAME": ERROR1 --------------n");
 	while(gpio__read(uart_gpio_no[1]));
-	delay(50);
+	msleep(50);
+	printk(KERN_INFO DEV_NAME": ERROR2 ----------------\n");
 	for(i = 0; i < 8; i++){
-		delay(100);
+		msleep(100);
 		karakter = gpio__read(uart_gpio_no[1]);
 		karakter <<=1;
 	}
+	printk(KERN_INFO DEV_NAME": ERROR3 ----------------\n");
+	
 	gpio__set(uart_gpio_no[1]);
 	if(copy_to_user(buf,(uint8_t*)&karakter, len )){
 		return -EFAULT;
@@ -198,7 +202,7 @@ int uart_coms_init(void) {
 exit:
 	if(r){
 		printk(KERN_ERR DEV_NAME": %s() failed with %d!\n", __func__, r);
-		uni_coms_exit();
+		uart_coms_exit();
 	}else{
 		printk(KERN_INFO DEV_NAME": Inserting module successful.\n");
 	}
