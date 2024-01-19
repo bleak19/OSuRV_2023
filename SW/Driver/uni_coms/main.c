@@ -16,30 +16,25 @@ MODULE_LICENSE("Dual BSD/GPL");
 #include "include/uni_coms.h"
 #include "gpio.h"
 
+#define TX 14
+#define RX 15
 
-#define FAKE_FEEDBACK 1
 
-static const uint8_t uart_gpio_no[UART_COMS__N] = {
-    14, //tx
-    15  //rx
-};
-
-void send_8bit_serial_data(char data_tx, char mask){
+void send_8bit_serial_data(uint8_t data_tx, uint8_t mask){
 
 
 	if(data_tx & mask){
 	
-		gpio__set(uart_gpio_no[0]);
+		gpio__set(TX);
 	
 	}
 	else {
-		gpio__clear(uart_gpio_no[0]);
+		gpio__clear(TX);
 
 	}
 	
  
 
-data_tx = data_tx<< 1;
 }
  //send stop bit
 
@@ -62,20 +57,20 @@ static ssize_t uart_coms_write(
 	size_t len,
 	loff_t *f_pos
 ) {
-	char mask;
+	uint8_t mask = 0x80;
 	int i;
-	char podatak = 'h';
-	printk(KERN_INFO DEV_NAME": ERROR1 --------------n");
-	gpio__clear(uart_gpio_no[0]);
+	uint8_t podatak = 'Z';
+	
+	gpio__clear(TX);
 	msleep(100);
-	for(i = 0; i < 8; i++){
+	for(i = 0; i < 7; i++){
 		send_8bit_serial_data(podatak,mask);
 		msleep(100);
 
 		mask >>= 1;
 	}
 
-	gpio__set(uart_gpio_no[0]);
+	gpio__set(TX);
 	return sizeof(podatak);
 }
 
@@ -87,24 +82,32 @@ static ssize_t uart_coms_read(
 	loff_t* f_pos
 ) {
 	//char mask = 0x80;
-	char karakter=0x00;
+	uint16_t karakter=0x00;
 	int i;
-	printk(KERN_INFO DEV_NAME": ERROR1 --------------n");
-	while(gpio__read(uart_gpio_no[1]));
-	msleep(50);
-	printk(KERN_INFO DEV_NAME": ERROR2 ----------------\n");
-	for(i = 0; i < 8; i++){
-		msleep(100);
-		karakter = gpio__read(uart_gpio_no[1]);
-		karakter <<=1;
-	}
-	printk(KERN_INFO DEV_NAME": ERROR3 ----------------\n");
+	//while(gpio__read(RX));
 	
-	gpio__set(uart_gpio_no[1]);
-	if(copy_to_user(buf,(uint8_t*)&karakter, len )){
+	while(gpio__read(RX));
+	
+	msleep(50);
+	
+	for(i = 0; i < 7; i++){
+		msleep(100);
+		printk(KERN_INFO ":-----(0x%02x)---------- ", karakter);
+		karakter = karakter | gpio__read(RX);
+		karakter <<=1;
+		printk(KERN_INFO ":-----(0x%02x)---------- ", karakter);
+	}
+	
+	
+	
+	//gpio__set(RX);
+	if(copy_to_user(buf,(uint16_t*)&karakter, len )){
+		
+		
 		return -EFAULT;
 	}else{
-
+		printk(KERN_INFO ":-----%s---------- \n", buf);
+		printk(KERN_INFO ":-----(0x%02x)---------- \n", len);
 		return len;
 	}
 }
@@ -195,8 +198,8 @@ int uart_coms_init(void) {
 		goto exit;
 	}
 
-	gpio__steer_pinmux(uart_gpio_no[0], GPIO__OUT);
-	gpio__steer_pinmux(uart_gpio_no[1], GPIO__IN);
+	gpio__steer_pinmux(TX, GPIO__OUT);
+	gpio__steer_pinmux(RX, GPIO__IN);
 
 	
 exit:

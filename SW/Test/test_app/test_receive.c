@@ -6,7 +6,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
-#include "include/uni_coms.h"
+#include "uni_coms.h"
 
 int main(){
 
@@ -16,7 +16,7 @@ int main(){
     fd = open(DEV_FN,O_RDWR);
     //printf("otvorio fajl");
     uint8_t duties;
-    char karakter;
+    uint16_t karakter = 0x00;
     
     if(fd < 0){
 
@@ -25,24 +25,17 @@ int main(){
         return 4;
     }
     
-    int r = write(fd,(char*)&duties, sizeof(duties));
+  
     
-    if (r!=sizeof(duties)){
-        fprintf(stderr, "ERROR: write went wrong!");
-        return 4;
-    }
-    
-    printf("pre citanja");
     int rd = read(fd, &karakter, sizeof(karakter));
-    printf("posle citanja");
-    if (r!=sizeof(karakter)){
+    if (rd!=sizeof(karakter)){
         fprintf(stderr, "ERROR: write went wrong!");
         return 4;
     }
 
     close(fd);
-    printf("karakter je %c ", karakter);
-    printf("end");
+    printf("karakter je %c (0x%02x) \n", karakter, karakter);
+    printf("end \n");
 
 
 /*

@@ -18,10 +18,8 @@ import waflib
 ###############################################################################
 
 one_file_programs = [
-	'test_pwm.c',
-	'test_servos.c',
-	'test_bldc.c',
-	'test_pwm_map.cpp'
+	'test_send.c',
+	'test_receive.c',
 ]
 
 def options(opt):
@@ -41,14 +39,14 @@ def configure(cfg):
 	#cfg.env.append_value('LIB', 'pthread')
 	cfg.env.append_value('CXXFLAGS', '-g -rdynamic'.split()) # For debug.
 
-	motor_ctrl_driver = cfg.srcnode.find_node(
-		'../../Driver/motor_ctrl/'
+	uni_coms_driver = cfg.srcnode.find_node(
+		'../../Driver/uni_coms/'
 	)
 	cfg.check(
-		uselib_store = 'motor_ctrl_driver',
-		msg = "Checking for stuff from 'motor_ctrl' driver",
-		header_name = 'motor_ctrl.h',
-		includes = str(motor_ctrl_driver.find_node('include')),
+		uselib_store = 'uni_coms_driver',
+		msg = "Checking for stuff from 'uni_coms' driver",
+		header_name = 'uni_coms.h',
+		includes = str(uni_coms_driver.find_node('include')),
 		features = 'cxx cxxprogram',
 		mandatory = True
 	)
@@ -59,7 +57,7 @@ def build(bld):
 		bld.program(
 			target = p,
 			source = s,
-			use = 'motor_ctrl_driver',
+			use = 'uni_coms_driver',
 			install_path = False
 		)
 
