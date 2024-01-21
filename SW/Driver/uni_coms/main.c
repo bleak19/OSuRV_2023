@@ -19,6 +19,8 @@ MODULE_LICENSE("Dual BSD/GPL");
 #define TX 14
 #define RX 15
 
+void print_binary(uint8_t data);
+
 
 void send_8bit_serial_data(uint8_t data_tx, uint8_t mask){
 
@@ -32,6 +34,9 @@ void send_8bit_serial_data(uint8_t data_tx, uint8_t mask){
 		gpio__clear(TX);
 
 	}
+	
+	//printk(KERN_INFO	":--------------- WRITE TX------------");
+	//print_binary(gpio__read(TX));
 	
  
 
@@ -51,25 +56,35 @@ static int uart_coms_release(struct inode *inode, struct file *filp) {
 	return 0;
 }
 
+//debugging func
+void print_binary(uint8_t data){
+	int i;
+	for(i = 7; i>=0; i--) {
+			printk(KERN_INFO "%d", (data >> i) &1);	
+	}
+	
+	printk(KERN_INFO "\n");
+}
+
 static ssize_t uart_coms_write(
 	struct file* filp,
 	const char *buf,
 	size_t len,
 	loff_t *f_pos
 ) {
-	uint8_t mask = 0x80;
+	uint8_t mask = 0b10000000;
 	int i;
-	uint8_t podatak = 'Z';
+	uint8_t podatak = 'Q';
 	
 	gpio__clear(TX);
 	msleep(100);
 	for(i = 0; i < 7; i++){
 		send_8bit_serial_data(podatak,mask);
 		msleep(100);
-
 		mask >>= 1;
+		
 	}
-
+	
 	gpio__set(TX);
 	return sizeof(podatak);
 }
@@ -81,33 +96,40 @@ static ssize_t uart_coms_read(
 	size_t len,
 	loff_t* f_pos
 ) {
-	//char mask = 0x80;
-	uint16_t karakter=0x00;
+	
+	
+	uint8_t mask=0b00000001;
+	uint8_t data = 0b00000000;
 	int i;
-	//while(gpio__read(RX));
+	
 	
 	while(gpio__read(RX));
 	
 	msleep(50);
 	
-	for(i = 0; i < 7; i++){
+	for(i = 0; i < 8; i++){
 		msleep(100);
-		printk(KERN_INFO ":-----(0x%02x)---------- ", karakter);
-		karakter = karakter | gpio__read(RX);
-		karakter <<=1;
-		printk(KERN_INFO ":-----(0x%02x)---------- ", karakter);
+		//used for debugging
+		//printk(KERN_INFO ":--------------- Read RX");
+		//printk(KERN_INFO ":--------------- Read RX VALUE %d", gpio__read(RX));
+		
+		data+= mask & gpio__read(RX);
+		
+		if(i!=7){
+			data <<=1;
+		}
 	}
+		//used for debugging 
+		//printk(KERN_INFO ":-----(0x%02x)-------%c--- Read", karakter,karakter);
+		//print_binary(data);
 	
 	
-	
-	//gpio__set(RX);
-	if(copy_to_user(buf,(uint16_t*)&karakter, len )){
+	gpio__set(RX); //end signal
+	if(copy_to_user(buf,(uint8_t*)&data, len )){
 		
 		
 		return -EFAULT;
 	}else{
-		printk(KERN_INFO ":-----%s---------- \n", buf);
-		printk(KERN_INFO ":-----(0x%02x)---------- \n", len);
 		return len;
 	}
 }
@@ -121,24 +143,7 @@ static long uart_coms_ioctl(
 	unsigned int cmd,
 	unsigned long arg
 ) {
-	/*uart_coms__ioctl_data a;
-	pthread_t write_t;
-	pthread_t read_t;
-	
-	//pthread_mutex_init(&cs_mutex, NULL);
-	
-	switch(cmd){
-		case IOCTL_WRITE:
-			pthread_create(&write_t, NULL,  send_8bit_serial_data, data);
-			
-			break;
-		case IOCTL_READ:
-			
-			break;
-		default:
-			break;
-	}
-	*/
+
 	return 0;
 }
 

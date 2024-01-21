@@ -13,8 +13,6 @@
 #define DEV_NAME "uni_coms"
 #define DEV_FN "/dev/uni_coms"
 
-#define WIDE_PWM 1
-
 
 #include <linux/ioctl.h> // For _IOW and _IORW
 

@@ -10,11 +10,8 @@
 
 int main(){
 
-    //printf("Radim \n");
     int fd;
-    //printf("otvaram fajl \n");
     fd = open(DEV_FN,O_RDWR);
-    //printf("otvorio fajl");
     uint8_t duties;
     char karakter;
     
@@ -35,7 +32,7 @@ int main(){
     
   
     close(fd);
-    printf("end");
+    printf("Sent successfuly\n");
 
     return 0;
 }
